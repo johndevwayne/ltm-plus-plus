@@ -1,6 +1,6 @@
 /**
  *
- *  LICENSING: See LICENSE.txt or http://www.wtfpl.net/about/
+ *  LICENSING: See LICENSE.txt or http://opensource.org/licenses/MIT
  **/
 
 #include "BigNum.h"
