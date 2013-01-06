@@ -1,5 +1,4 @@
 /*
- * BigNum.h
  *
  *  Created on: Dec 21, 2012
  *
@@ -23,6 +22,11 @@
 class BigNum
 {
 private:
+    // Convenience typedefs
+
+    typedef unsigned char byte;
+    typedef std::vector<byte> bytevector;
+
 	std::auto_ptr<mp_int> N;
 
 	/*
@@ -38,7 +42,7 @@ private:
 	 * private constructor from serialized value
 	 */
 
-	BigNum(const std::vector<unsigned char> &bin);
+	BigNum(const bytevector &bin);
 
 	// Not really const, but tommath is not const correct so we need this
 	operator mp_int *() const {
@@ -118,9 +122,9 @@ public:
 
 	// Serialize and DeSerialize methods
 	int SerializedSize() const;
-    std::vector<unsigned char> Serialize() const;
-    int Serialize(std::vector<unsigned char> &buf) const;
-	static BigNum DeSerialize(const std::vector<unsigned char> &bin);
+    bytevector Serialize() const;
+    int Serialize(bytevector &buf) const;
+	static BigNum DeSerialize(const bytevector &bin);
 
 	// add / subtract operations
 
@@ -193,22 +197,82 @@ public:
 	// Returns d, and sets u and v.
 	BigNum ExtendedGcd(const BigNum &other, BigNum &u, BigNum &v) const;
 
+	// Encodings for interoperation with other implementations
+
+	/**
+	 * ToDER returns the DER encoding of an ASN1 Integer. The encoding is suitable
+	 * for use in many standards, and is also the correct format for Java's
+	 * BigInteger (byte []) constructor.
+	 */
+	bytevector ToDER() const;
+
+	/*
+	 * factory function that constructs a BigNum from an DER-encoded ASN1 integer.
+	 */
+	static BigNum FromDER(const bytevector &derEncodedInt);
+
+    /**
+     * ToDotNetBigInt returns the a byte array suitable for the
+     * System.Numerics.BigInteger(byte [] value) constructor.
+     * This is simply the DER encoding in reverse order, i.e. in
+     * little-endian order.
+     */
+	bytevector ToDotNetBigInt() const;
+    /*
+     * factory function that constructs a BigNum from a byte array created by
+     * System.Numerics.BigInteger.ToByteArray() method.
+     */
+    static BigNum FromDotNetBigInt(const bytevector &derEncodedInt);
+
 	friend std::ostream& operator<<(std::ostream &out, const BigNum &bignum);
 
 	// relational, tests
 
-	int IsZero() const
+	bool IsNegative() const
+	{
+	    return N->sign;
+	}
+
+	bool IsNonNegative() const
+	{
+	    return ! IsNegative();
+	}
+
+	bool IsZero() const
 	{
 		return N->used == 0;
 	}
-	int IsEven() const
+
+	bool IsEven() const
 	{
 		return IsZero() || ((N->dp[0] & 1) == 0);
 	}
-	int IsOdd() const
+
+	bool IsOdd() const
 	{
 		return (N->used > 0) && ((N->dp[0] & 1) == 1);
 	}
+
+    bool IsGreaterThan(const BigNum &other) const {
+        return Cmp(other) > 0;
+    }
+
+    bool IsGreaterThanOrEqualTo(const BigNum &other) const {
+        return Cmp(other) >= 0;
+    }
+
+    bool IsLessThan(const BigNum &other) const {
+        return Cmp(other) < 0;
+    }
+
+    bool IsLessThanOrEqualTo(const BigNum &other) const {
+        return Cmp(other) <= 0;
+    }
+
+    bool IsEqualTo(const BigNum &other) const {
+        return Cmp(other) == 0;
+    }
+
 	int Cmp(const BigNum &other) const
 	{
 		return mp_cmp(*this, other);
